@@ -1,6 +1,10 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+
+
+
+
 async function checkProvider(config) {
     const start = Date.now();
     
@@ -34,7 +38,10 @@ async function checkProvider(config) {
     }
 }
 
-console.log("Vérification Multi-Provider");
+
+
+
+
 
 const providers = [
     {
@@ -72,6 +79,35 @@ const providers = [
     }
 ];
 
+
+
+
+
+
 const results = await Promise.all(providers.map(p => checkProvider(p)));
 
-console.table(results);
+function displayResults(results) {
+    console.log("🔍 Vérification des connexions API...\n");
+
+    let success = 0;
+
+    results.forEach(r => {
+        const icon = r.status === 'OK' ? '✅' : '❌';
+        const name = r.provider.padEnd(15, ' ');
+
+        if (r.status === 'OK') {
+            console.log(`${icon} ${name} ${r.latency}ms`);
+            success++;
+        } else {
+            console.log(`${icon} ${name} ERROR (${r.error})`);
+        }
+    });
+
+    console.log(`\n${success}/${results.length} connexions actives`);
+
+    if (success === results.length) {
+        console.log("Tout est ok");
+    }
+}
+
+displayResults(results);
