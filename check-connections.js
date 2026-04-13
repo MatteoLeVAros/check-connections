@@ -11,7 +11,9 @@ async function checkProvider(config) {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${config.key}`,
             },
+            
             body: JSON.stringify(config.body)
+
         });
 
         const latency = Date.now() - start;
@@ -50,19 +52,23 @@ const providers = [
         url: 'https://api.groq.com/openai/v1/chat/completions',
         key: process.env.GROQ_API_KEY,
         body: {
-            model: 'llama-3.1-8b-instant',
+            model: 'llama-3.3-70b-versatile',
             messages: [{ role: 'user', content: 'ping' }],
             max_tokens: 5
         }
     },
     {
         name: 'HuggingFace',
-        url: 'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-v0.1',
-        key: process.env.HF_API_KEY,
+        url: 'https://router.huggingface.co/v1/chat/completions',
+        key: process.env.HF_API_KEY, 
         body: {
-            inputs: 'ping',
-            parameters: { max_new_tokens: 5 }
-        }
+            model: 'meta-llama/Llama-3.1-8B-Instruct',
+            messages: [
+            { role: 'user', content: 'ping' }
+            ],
+            max_tokens: 5
+        }    
+        
     }
 ];
 
