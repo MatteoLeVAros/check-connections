@@ -1,44 +1,71 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-console.log("--- Phase 1 : Vérification des clés API ---");
-
-// On vérifie si les variables existent dans le .env
-const mistralPresent = process.env.MISTRAL_API_KEY ? "présente ✅" : "manquante ❌";
-const groqPresent = process.env.GROQ_API_KEY ? "présente ✅" : "manquante ❌";
-const hfPresent = process.env.HF_API_KEY ? "présente ✅" : "manquante ❌";
-
-console.log(`MISTRAL_API_KEY: ${mistralPresent}`);
-console.log(`GROQ_API_KEY: ${groqPresent}`);
-console.log(`HF_API_KEY: ${hfPresent}`);
-
-console.log("\n--- Test de connexion (Mistral) ---");
-
-// On ajoute le code du prof pour tester si la clé Mistral FONCTIONNE vraiment
-if (process.env.MISTRAL_API_KEY) {
+async function checkProvider(config) {
+    const start = Date.now();
+    
     try {
-        const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        const response = await fetch(config.url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.MISTRAL_API_KEY}`,
+                'Authorization': `Bearer ${config.key}`,
             },
-            body: JSON.stringify({
-                model: 'mistral-small-latest',
-                messages: [{ role: 'user', content: 'Test connection' }],
-                max_tokens: 10
-            })
+            body: JSON.stringify(config.body)
         });
 
-        const data = await response.json();
-        
-        if (response.ok) {
-            console.log('Connexion réussie !');
-            console.log('Réponse test :', data.choices[0].message.content);
-        } else {
-            console.log('Erreur API :', data.error.message);
-        }
-    } catch (error) {
-        console.log('Erreur réseau :', error.message);
+        const latency = Date.now() - start;
+
+        return {
+            provider: config.name,
+            status: response.ok ? 'OK' : 'ERROR',
+            latency: latency,
+            ...( !response.ok && { error: `HTTP ${response.status}` })
+        };
+    } catch (err) {
+        return { 
+            provider: config.name, 
+            status: 'ERROR', 
+            latency: Date.now() - start, 
+            error: err.message 
+        };
     }
 }
+
+console.log("Vérification Multi-Provider");
+
+const providers = [
+    {
+        name: 'Mistral',
+        url: 'https://api.mistral.ai/v1/chat/completions',
+        key: process.env.MISTRAL_API_KEY,
+        body: {
+            model: 'mistral-small-latest',
+            messages: [{ role: 'user', content: 'ping' }],
+            max_tokens: 5
+        }
+    },
+    {
+        name: 'Groq',
+        url: 'https://api.groq.com/openai/v1/chat/completions',
+        key: process.env.GROQ_API_KEY,
+        body: {
+            model: 'llama-3.1-8b-instant',
+            messages: [{ role: 'user', content: 'ping' }],
+            max_tokens: 5
+        }
+    },
+    {
+        name: 'HuggingFace',
+        url: 'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-v0.1',
+        key: process.env.HF_API_KEY,
+        body: {
+            inputs: 'ping',
+            parameters: { max_new_tokens: 5 }
+        }
+    }
+];
+
+const results = await Promise.all(providers.map(p => checkProvider(p)));
+
+console.table(results);
